@@ -13,12 +13,8 @@ app = ChatBot()
 @cl.on_chat_start
 async def on_chat_start():
     
-    # Initialize chatbot 
-    existing_docs = app.list_docs()
-    # List existing documents
-    doc_list = "\n".join([doc for doc in existing_docs])
     await cl.Message(
-        content=f"Existing documents:\n{doc_list}\n\You can upload a PDF file or start asking to begin!",
+        content=f"I can tell you anything about Python basics. You can start asking to begin!",
     ).send()
 
     cl.user_session.set("chatbot", app)

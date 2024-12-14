@@ -36,10 +36,10 @@ class ChatBot:
             "port": "8108",       # For Typesense Cloud use 443
             "protocol": "http"    # For Typesense Cloud use https
         }
-        typesense_collection_name = "lang-chain"
-
+        self.typesense_collection_name = "lang-chain"
+        
         # Setup Typesense client
-        typesense_client = typesense.Client(
+        self.typesense_client = typesense.Client(
             {
             "nodes": [node],
             "api_key": TYPESENSE_API_KEY,
@@ -47,16 +47,42 @@ class ChatBot:
             }
         )
 
-        default_docs = self.get_docs()
+        self.init_vectorstore()
 
-        # Create Typesense vector store
-        self.vectorstore = Typesense.from_documents(
-            documents = default_docs,  # Start with saved documents
-            embedding = self.embeddings,
-            typesense_client = typesense_client,
-            typesense_collection_name = typesense_collection_name 
-        )
-
+    def init_vectorstore(self):
+        """
+        Set up vector store, avoiding reindexing if collection exists and has documents
+        """
+        try:
+            # Check if collection exists
+            collection_exists = False
+            try:
+                collection_info = self.typesense_client.collections[self.typesense_collection_name].retrieve()
+                collection_exists = True
+            except Exception as e:
+                # Collection does not exist
+                collection_exists = False
+            
+            # If collection doesn't exist or is empty, create and populate it
+            if not collection_exists or collection_info.get('num_documents', 0) == 0:
+                default_docs = self.get_docs()
+                self.vectorstore = Typesense.from_documents(
+                    documents=default_docs,  # Start with saved documents
+                    embedding=self.embeddings,
+                    typesense_client=self.typesense_client,
+                    typesense_collection_name=self.typesense_collection_name 
+                )
+            else:
+                # Collection exists and has documents, create vectorstore without reindexing
+                self.vectorstore = Typesense(
+                    typesense_client=self.typesense_client,
+                    embedding=self.embeddings,
+                    typesense_collection_name=self.typesense_collection_name
+                )
+        
+        except Exception as e:
+            print(f"Error setting up vector store: {e}")
+            raise
 
     def load_pdf_dir(self):
         """loads all the pdfs in the a directory and returns the list"""
@@ -66,16 +92,6 @@ class ChatBot:
             loader = PyPDFLoader(pdf_path)
             documents.extend(loader.load())
         return documents
-
-    def list_docs(self):
-        """List all the documents in the directory"""
-        doc_titles = []
-
-        for file in os.listdir(PDF_DIRECTORY):
-            title = os.path.splitext(file)[0]
-            doc_titles.append(title)
-
-        return doc_titles
 
     def get_docs(self):
         """return chunk (split) docs, uses CharacterTextSplitter with chunk size = 1000 and overlap = 0 """
@@ -93,6 +109,7 @@ class ChatBot:
         ])
 
         prompt = ChatPromptTemplate.from_template("""
+            Provide a comprehensive answer using the following context and chat history. Include citations to source documents.
             Context Documents:
             {context}
 
@@ -100,8 +117,6 @@ class ChatBot:
             {chat_history}
 
             User Query: {query}
-
-            Provide a comprehensive answer using context and chat history. Include citations to source documents.
         """)
 
         chain = (
