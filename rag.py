@@ -100,15 +100,14 @@ class ChatBot:
         docs = text_splitter.split_documents(documents)
         return docs
 
-    def generate_response(self, query: str, chat_history: List[Dict]):
+    async def generate_response(self, query: str, chat_history: List[Dict]):
         """ returns the retriever"""
         relevant_docs = self.vectorstore.similarity_search(query, k=3)
         context = "\n\n".join([
             (f"Source: {doc.metadata}\n" f"Content: {doc.page_content}")
             for doc in relevant_docs
         ])
-
-        prompt = ChatPromptTemplate.from_template("""
+        template = """
             Provide a comprehensive answer using the following context and chat history. Include citations to source documents.
             Context Documents:
             {context}
@@ -117,8 +116,8 @@ class ChatBot:
             {chat_history}
 
             User Query: {query}
-        """)
-
+        """
+        prompt = ChatPromptTemplate.from_template(template)
         chain = (
             {
                 "context": lambda x: context,
@@ -129,9 +128,7 @@ class ChatBot:
             | self.llm
             | StrOutputParser()
         )
-        
-        response = chain.invoke(query)
-
-        return response, relevant_docs
+        response_generator = chain.astream(query)
+        return response_generator
 
 
