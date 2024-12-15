@@ -15,7 +15,7 @@ async def on_chat_start():
     
     await cl.Message(
         content=f"I can tell you anything about Python basics. You can start asking to begin!",
-        author="AskHR"
+        author="ChatBot"
     ).send()
     cl.user_session.set("disable_welcome", True)
     cl.user_session.set("chatbot", app)
@@ -27,7 +27,7 @@ async def main(message: cl.Message):
     # Retrieve chat history
     history = cl.user_session.get("chat_history", [])
     
-    response_msg = cl.Message(content="•••")
+    response_msg = cl.Message(content="•••", author="ChatBot")
     await response_msg.send()
 
     await cl.sleep(2)

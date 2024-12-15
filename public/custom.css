@@ -1,7 +1,4 @@
-a[href*='https://github.com/Chainlit/chainlit'] {
-    visibility: hidden;
-}
-
-.watermark {
+/* Remove Chainlit watermark */
+.MuiStack-root.watermark {
     display: none !important;
 }
