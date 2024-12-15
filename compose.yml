@@ -10,12 +10,8 @@ services:
       - "8108:8108"
     volumes:
       - ./data:/data
-      - ./analytics:/analytics
     command: >
       --api-key=123456789
       --data-dir=/data
       --enable-cors
-      --enable-search-analytics=true
-      --analytics-dir=/analytics
-      --analytics-flush-interval=60
             
